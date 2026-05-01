@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "WebFetch(domain:kts.org.pl)"
+      "WebFetch(domain:kts.org.pl)",
+      "Bash(npx tsc *)"
     ]
   }
 }
