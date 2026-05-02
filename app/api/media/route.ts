@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
   let url: string
   if (token) {
     const blob = await put(`kts/media/${gallery}/${Date.now()}-${file.name}`, file, {
-      access: "public",
+      access: "private",
       token,
     })
     url = blob.url

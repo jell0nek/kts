@@ -4,6 +4,7 @@ import type { Metadata } from "next"
 import Image from "next/image"
 import { ImageOff } from "lucide-react"
 import { prisma } from "@/lib/prisma"
+import { blobUrl } from "@/lib/blobUrl"
 import { PageHero } from "@/components/PageHero"
 
 export const metadata: Metadata = { title: "Zdjęcia — KTS Kraków" }
@@ -50,7 +51,7 @@ export default async function MediaPage() {
                   {photos.map((photo) => (
                     <div key={photo.id} className="group relative aspect-square rounded-lg overflow-hidden bg-neutral-200">
                       <Image
-                        src={photo.url}
+                        src={blobUrl(photo.url)}
                         alt={photo.caption ?? label}
                         fill
                         className="object-cover group-hover:scale-105 transition-transform duration-300"

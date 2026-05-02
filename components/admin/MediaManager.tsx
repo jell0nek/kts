@@ -4,6 +4,7 @@ import { useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
 import { Upload, Trash2, Loader2, ImageIcon } from "lucide-react"
+import { blobUrl } from "@/lib/blobUrl"
 
 interface FileItem {
   id: string; gallery: string; url: string; filename: string; caption: string | null; order: number
@@ -134,7 +135,7 @@ export function MediaManager({
             <div key={file.id} className="group relative bg-neutral-100 rounded-lg overflow-hidden">
               <div className="aspect-square relative">
                 <Image
-                  src={file.url}
+                  src={blobUrl(file.url)}
                   alt={file.caption ?? file.filename}
                   fill
                   className="object-cover"
