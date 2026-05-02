@@ -70,6 +70,7 @@ model Document {
 }
 
 model SiteSettings {
-  id    String @id @default("default")
-  theme String @default("classic")
+  id                  String @id @default("default")
+  theme               String @default("classic")
+  calendarHorizonDays Int?
 }

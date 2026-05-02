@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic"
 
 import type { Metadata } from "next"
 import { prisma } from "@/lib/prisma"
+import { getSettings } from "@/lib/settings"
 import { format, isFuture, isPast } from "date-fns"
 import { pl } from "date-fns/locale"
 import { PageHero } from "@/components/PageHero"
@@ -34,15 +35,96 @@ type Event = {
   eventType: string
 }
 
+function toMins(d: Date) { return d.getHours() * 60 + d.getMinutes() }
+
+function timesOverlap(startA: Date, endA: Date | null, startB: Date, endB: Date | null): boolean {
+  const s1 = toMins(startA), e1 = endA ? toMins(endA) : s1 + 60
+  const s2 = toMins(startB), e2 = endB ? toMins(endB) : s2 + 60
+  if (e1 <= s1 || e2 <= s2) return false
+  return s1 < e2 && s2 < e1
+}
+
+// Expand each cyclic event into individual weekly occurrences within [from, to].
+function expandCyclicEvents(events: Event[], from: Date, to: Date): Event[] {
+  const result: Event[] = []
+  for (const ev of events) {
+    const anchor = new Date(ev.date)
+    const targetDow = anchor.getDay()
+    const h = anchor.getHours(), m = anchor.getMinutes()
+
+    const cursor = new Date(from)
+    cursor.setHours(h, m, 0, 0)
+    const shift = (targetDow - cursor.getDay() + 7) % 7
+    cursor.setDate(cursor.getDate() + shift)
+
+    while (cursor <= to) {
+      const d = new Date(cursor)
+      const endTime = ev.endTime
+        ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), new Date(ev.endTime).getHours(), new Date(ev.endTime).getMinutes())
+        : null
+      result.push({ ...ev, id: `${ev.id}_${d.getTime()}`, date: d, endTime })
+      cursor.setDate(cursor.getDate() + 7)
+    }
+  }
+  return result
+}
+
+function sameDay(a: Date, b: Date) {
+  return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate()
+}
+
+// zawody beats jednorazowe on exact same day; either beats a cyclic occurrence on exact same day.
+function filterByPriority(events: Event[]): Event[] {
+  const suppressed = new Set<string>()
+  const cyclic = events.filter((e) => e.eventType === "cykliczne")
+  const oneTime = events.filter((e) => e.eventType === "jednorazowe")
+  const tournaments = events.filter((e) => e.eventType === "zawody")
+
+  for (const cy of cyclic) {
+    const da = new Date(cy.date)
+    for (const other of [...oneTime, ...tournaments]) {
+      if (sameDay(da, new Date(other.date)) && timesOverlap(da, cy.endTime, new Date(other.date), other.endTime)) {
+        suppressed.add(cy.id)
+        break
+      }
+    }
+  }
+  for (const ot of oneTime) {
+    const da = new Date(ot.date)
+    for (const to of tournaments) {
+      if (sameDay(da, new Date(to.date)) && timesOverlap(da, ot.endTime, new Date(to.date), to.endTime)) {
+        suppressed.add(ot.id)
+        break
+      }
+    }
+  }
+
+  return events.filter((e) => !suppressed.has(e.id))
+}
+
 export default async function CalendarPage() {
   let events: Event[] = []
 
   try {
     const now = new Date()
-    events = await prisma.event.findMany({
-      where: { isPublished: true, date: { gte: new Date(now.getFullYear(), now.getMonth(), 1) } },
-      orderBy: { date: "asc" },
-    })
+    const { calendarHorizonDays } = await getSettings()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    // Default to 90 days when admin hasn't configured a horizon
+    const horizon = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (calendarHorizonDays ?? 90))
+
+    const [nonCyclic, cyclic] = await Promise.all([
+      prisma.event.findMany({
+        where: { isPublished: true, eventType: { not: "cykliczne" }, date: { gte: startOfMonth, lte: horizon } },
+        orderBy: { date: "asc" },
+      }),
+      prisma.event.findMany({
+        where: { isPublished: true, eventType: "cykliczne" },
+      }),
+    ])
+
+    const expanded = expandCyclicEvents(cyclic, startOfMonth, horizon)
+    events = filterByPriority([...nonCyclic, ...expanded])
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   } catch {}
 
   const upcoming = events.filter((e) => isFuture(new Date(e.date)))
@@ -115,10 +197,14 @@ function EventCard({ event, dimmed = false }: { event: Event; dimmed?: boolean }
               {endTime && `–${format(endTime, "HH:mm")}`}
             </p>
             {event.location && (
-              <p className="flex items-center gap-1">
+              <a
+                href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1 hover:text-navy-700 transition-colors"
+              >
                 <MapPin className="w-3.5 h-3.5 shrink-0" />
                 {event.location}
-              </p>
+              </a>
             )}
           </div>
           {event.description && (

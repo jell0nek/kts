@@ -14,14 +14,24 @@ export async function POST(req: NextRequest) {
   if (!file) return NextResponse.json({ error: "No file" }, { status: 400 })
 
   const token = process.env.BLOB_READ_WRITE_TOKEN
-  if (!token) {
-    return NextResponse.json({ error: "Blob storage not configured" }, { status: 503 })
-  }
 
-  const blob = await put(`kts/media/${gallery}/${Date.now()}-${file.name}`, file, {
-    access: "public",
-    token,
-  })
+  let url: string
+  if (token) {
+    const blob = await put(`kts/media/${gallery}/${Date.now()}-${file.name}`, file, {
+      access: "public",
+      token,
+    })
+    url = blob.url
+  } else {
+    // Local dev fallback: save to public/uploads/
+    const { writeFile, mkdir } = await import("fs/promises")
+    const { join } = await import("path")
+    const filename = `${Date.now()}-${file.name}`
+    const dir = join(process.cwd(), "public", "uploads", gallery)
+    await mkdir(dir, { recursive: true })
+    await writeFile(join(dir, filename), Buffer.from(await file.arrayBuffer()))
+    url = `/uploads/${gallery}/${filename}`
+  }
 
   const maxOrder = await prisma.mediaFile.aggregate({
     where: { gallery },
@@ -31,7 +41,7 @@ export async function POST(req: NextRequest) {
   const saved = await prisma.mediaFile.create({
     data: {
       gallery,
-      url: blob.url,
+      url,
       filename: file.name,
       caption: null,
       order: (maxOrder._max.order ?? 0) + 1,

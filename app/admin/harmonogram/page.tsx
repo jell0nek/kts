@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma"
+import { getSettings } from "@/lib/settings"
 import { HarmonogramEditor } from "@/components/admin/HarmonogramEditor"
 
 export default async function HarmonogramPage() {
@@ -9,10 +10,10 @@ export default async function HarmonogramPage() {
   }[] = []
 
   try {
-    events = await prisma.event.findMany({
-      orderBy: { date: "asc" },
-    })
+    events = await prisma.event.findMany({ orderBy: { date: "asc" } })
   } catch {}
+
+  const settings = await getSettings()
 
   return (
     <div className="p-6 max-w-4xl">
@@ -26,6 +27,7 @@ export default async function HarmonogramPage() {
           date: e.date.toISOString(),
           endTime: e.endTime?.toISOString() ?? null,
         }))}
+        initialHorizonDays={settings.calendarHorizonDays}
       />
     </div>
   )

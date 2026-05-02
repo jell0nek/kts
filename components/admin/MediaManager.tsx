@@ -36,10 +36,12 @@ export function MediaManager({
         form.append("file", file)
         form.append("gallery", activeGallery)
         const res = await fetch("/api/media", { method: "POST", body: form })
-        if (res.ok) {
-          const saved = await res.json()
-          setFiles((f) => [...f, saved])
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error(err.error ?? `Błąd serwera (${res.status})`)
         }
+        const saved = await res.json()
+        setFiles((f) => [...f, saved])
       }
       router.refresh()
     } catch {

@@ -1,10 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { format, parseISO } from "date-fns"
 import { pl } from "date-fns/locale"
-import { Plus, Pencil, Trash2, Loader2, X, Save, AlertTriangle, Trophy, CalendarDays, RefreshCw } from "lucide-react"
+import { Plus, Pencil, Trash2, Loader2, X, Save, AlertTriangle, Trophy, CalendarDays, RefreshCw, Clock } from "lucide-react"
 
 interface EventData {
   id: string
@@ -97,6 +97,12 @@ function detectCollisions(events: EventData[]): Map<string, string[]> {
   const oneTime = events.filter((e) => e.eventType === "jednorazowe")
   const tournaments = events.filter((e) => e.eventType === "zawody")
 
+  console.group("[Harmonogram] detectCollisions")
+  console.log("cyclic:", cyclic.map(e => ({ title: e.title, date: e.date, dow: dayOfWeek(e.date), min: toMinutes(e.date), endMin: e.endTime ? toMinutes(e.endTime) : toMinutes(e.date)+60 })))
+  console.log("oneTime:", oneTime.map(e => ({ title: e.title, date: e.date, dow: dayOfWeek(e.date), min: toMinutes(e.date), endMin: e.endTime ? toMinutes(e.endTime) : toMinutes(e.date)+60 })))
+  console.log("tournaments:", tournaments.map(e => ({ title: e.title, date: e.date, dow: dayOfWeek(e.date), min: toMinutes(e.date) })))
+  console.groupEnd()
+
   // Same-type collisions
   for (let i = 0; i < cyclic.length; i++) {
     for (let j = i + 1; j < cyclic.length; j++) {
@@ -142,12 +148,17 @@ function detectCollisions(events: EventData[]): Map<string, string[]> {
 
 const inputCls = "w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 bg-white"
 
+function toLocalDateTimeString(d: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0")
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
 function blankForm(eventType: string): Partial<EventData> {
   const now = new Date()
   now.setMinutes(0, 0, 0)
   return {
     title: "",
-    date: now.toISOString().slice(0, 16),
+    date: now.toISOString(),
     endTime: null,
     location: "",
     section: "sport",
@@ -156,6 +167,27 @@ function blankForm(eventType: string): Partial<EventData> {
     recurrence: eventType === "cykliczne" ? "weekly" : null,
     eventType,
   }
+}
+
+function AutoResizeTextarea({ className, onChange, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const adjust = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }
+  useEffect(() => { adjust() })
+  return (
+    <textarea
+      ref={ref}
+      rows={2}
+      {...props}
+      className={className}
+      style={{ overflow: "hidden", resize: "vertical" }}
+      onChange={(e) => { adjust(); onChange?.(e) }}
+    />
+  )
 }
 
 // ─── EventForm ────────────────────────────────────────────────────────────────
@@ -187,16 +219,20 @@ function EventForm({
           <label className="block text-xs font-semibold text-neutral-600 mb-1">
             {isCyclic ? "Dzień tygodnia i godzina" : "Data i godzina"} *
           </label>
-          <input type="datetime-local" value={(form.date ?? "").slice(0, 16)}
-            onChange={(e) => set("date", e.target.value)} className={inputCls} />
+          <input type="datetime-local"
+            value={form.date ? toLocalDateTimeString(new Date(form.date)) : ""}
+            onChange={(e) => set("date", e.target.value ? new Date(e.target.value).toISOString() : "")}
+            className={inputCls} />
           {isCyclic && (
             <p className="text-xs text-neutral-400 mt-1">Wybierz dowolną datę z właściwego dnia tygodnia — tylko dzień tygodnia i godzina są brane pod uwagę.</p>
           )}
         </div>
         <div>
           <label className="block text-xs font-semibold text-neutral-600 mb-1">Koniec (opcjonalne)</label>
-          <input type="datetime-local" value={(form.endTime ?? "").slice(0, 16)}
-            onChange={(e) => set("endTime", e.target.value || null)} className={inputCls} />
+          <input type="datetime-local"
+            value={form.endTime ? toLocalDateTimeString(new Date(form.endTime)) : ""}
+            onChange={(e) => set("endTime", e.target.value ? new Date(e.target.value).toISOString() : null)}
+            className={inputCls} />
         </div>
         <div>
           <label className="block text-xs font-semibold text-neutral-600 mb-1">Sekcja</label>
@@ -211,8 +247,8 @@ function EventForm({
         </div>
         <div className="col-span-2">
           <label className="block text-xs font-semibold text-neutral-600 mb-1">Opis (opcjonalne)</label>
-          <textarea value={form.description ?? ""} onChange={(e) => set("description", e.target.value)}
-            rows={2} className={inputCls + " resize-none"} placeholder="Dodatkowe informacje..." />
+          <AutoResizeTextarea value={form.description ?? ""} onChange={(e) => set("description", e.target.value)}
+            className={inputCls} placeholder="Dodatkowe informacje..." />
         </div>
         <div className="col-span-2 flex items-center gap-2">
           <input type="checkbox" id="pub" checked={form.isPublished ?? true}
@@ -308,12 +344,37 @@ function EventRow({
 
 const ORDERED_TYPES = ["zawody", "jednorazowe", "cykliczne"] as const
 
-export function HarmonogramEditor({ initialEvents }: { initialEvents: EventData[] }) {
+export function HarmonogramEditor({ initialEvents, initialHorizonDays }: { initialEvents: EventData[]; initialHorizonDays: number | null }) {
   const [events, setEvents] = useState(initialEvents)
   const [adding, setAdding] = useState<string | null>(null)
   const [editing, setEditing] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [horizonDays, setHorizonDays] = useState<string>(initialHorizonDays != null ? String(initialHorizonDays) : "")
+  const [horizonSaving, setHorizonSaving] = useState(false)
   const router = useRouter()
+
+  const horizonDate = (() => {
+    const n = parseInt(horizonDays)
+    if (!n || n < 1) return null
+    const d = new Date()
+    d.setDate(d.getDate() + n)
+    return d
+  })()
+
+  async function saveHorizon() {
+    setHorizonSaving(true)
+    try {
+      const days = parseInt(horizonDays)
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ calendarHorizonDays: days >= 1 ? days : null }),
+      })
+      router.refresh()
+    } finally {
+      setHorizonSaving(false)
+    }
+  }
 
   const collisions = detectCollisions(events)
 
@@ -364,6 +425,38 @@ export function HarmonogramEditor({ initialEvents }: { initialEvents: EventData[
 
   return (
     <div className="space-y-6">
+      {/* Horizon setting */}
+      <div className="flex flex-col sm:flex-row sm:items-center gap-3 bg-white border border-neutral-200 rounded-xl px-5 py-4">
+        <Clock className="w-4 h-4 text-neutral-400 shrink-0" />
+        <div className="flex-1">
+          <p className="text-sm font-semibold text-neutral-800 mb-0.5">Zasięg kalendarza</p>
+          <p className="text-xs text-neutral-500">
+            {horizonDate
+              ? <>Zdarzenia będą wyświetlane do <span className="font-medium text-neutral-700">{horizonDate.toLocaleDateString("pl-PL", { day: "numeric", month: "long", year: "numeric" })}</span></>
+              : "Brak limitu — wyświetlane są wszystkie zaplanowane zdarzenia."}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          <label className="text-xs text-neutral-500 whitespace-nowrap">Pokaż przez</label>
+          <input
+            type="number" min={1} max={3650}
+            value={horizonDays}
+            onChange={(e) => setHorizonDays(e.target.value)}
+            placeholder="∞"
+            className="w-20 border border-neutral-300 rounded-lg px-2 py-1.5 text-sm text-center focus:outline-none focus:ring-2 focus:ring-navy-500"
+          />
+          <label className="text-xs text-neutral-500">dni</label>
+          <button
+            onClick={saveHorizon}
+            disabled={horizonSaving}
+            className="flex items-center gap-1.5 bg-navy-900 text-white px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-navy-700 transition-colors disabled:opacity-60"
+          >
+            {horizonSaving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            Zapisz
+          </button>
+        </div>
+      </div>
+
       {totalCollisions > 0 && (
         <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
           <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0" />

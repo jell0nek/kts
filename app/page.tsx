@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic"
 
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronRight, Target, Shield, Award } from "lucide-react"
+import { ChevronRight, Target, Shield, Award, MapPin } from "lucide-react"
 import { getPublishedContent } from "@/lib/content-server"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
@@ -151,7 +151,14 @@ export default async function HomePage() {
                 </div>
                 <h3 className="font-semibold text-navy-900 mb-1 text-base">{event.title}</h3>
                 {event.location && (
-                  <p className="text-neutral-500 text-sm">{event.location}</p>
+                  <a
+                    href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.location)}`}
+                    target="_blank" rel="noopener noreferrer"
+                    className="flex items-center gap-1 text-neutral-500 text-sm hover:text-navy-700 transition-colors mt-1"
+                  >
+                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                    {event.location}
+                  </a>
                 )}
               </div>
             ))}

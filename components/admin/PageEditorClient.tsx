@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { RichEditor } from "./RichEditor"
 import {
@@ -10,6 +10,27 @@ import {
 } from "lucide-react"
 import type { FieldConfig } from "@/lib/page-fields"
 import type { LegalSection, LegalItem } from "@/lib/content"
+
+function AutoResizeTextarea({ className, onChange, ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+  const ref = useRef<HTMLTextAreaElement>(null)
+  const adjust = () => {
+    const el = ref.current
+    if (!el) return
+    el.style.height = "auto"
+    el.style.height = `${el.scrollHeight}px`
+  }
+  useEffect(() => { adjust() })
+  return (
+    <textarea
+      ref={ref}
+      rows={2}
+      {...props}
+      className={className}
+      style={{ overflow: "hidden", resize: "vertical" }}
+      onChange={(e) => { adjust(); onChange?.(e) }}
+    />
+  )
+}
 
 interface PageEditorClientProps {
   slug: string
@@ -143,12 +164,11 @@ function ProgramsEditor({
                   className={inputClass + " w-24"}
                 />
               </div>
-              <textarea
+              <AutoResizeTextarea
                 value={prog.description}
                 onChange={(e) => update(prog.id, "description", e.target.value)}
                 placeholder="Opis programu"
-                rows={2}
-                className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 resize-none"
+                className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500"
               />
             </div>
             <button
@@ -560,12 +580,11 @@ export function PageEditorClient({ slug, initialContent, fields }: PageEditorCli
         )
       case "textarea":
         return (
-          <textarea
+          <AutoResizeTextarea
             value={(val as string) ?? ""}
             onChange={(e) => set(field.name, e.target.value)}
             placeholder={field.placeholder}
-            rows={4}
-            className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500 resize-y"
+            className="w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-navy-500"
           />
         )
       case "rich":
