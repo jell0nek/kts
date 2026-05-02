@@ -160,6 +160,8 @@ export default async function CalendarPage() {
   )
 }
 
+const DOW = ["NIE", "PON", "WTO", "SRO", "CZW", "PIA", "SOB"]
+
 function EventCard({ event, dimmed = false }: { event: Event; dimmed?: boolean }) {
   const date = new Date(event.date)
   const endTime = event.endTime ? new Date(event.endTime) : null
@@ -174,6 +176,9 @@ function EventCard({ event, dimmed = false }: { event: Event; dimmed?: boolean }
           <div className="text-2xl font-bold leading-none">{format(date, "d")}</div>
           <div className="text-xs text-navy-100/70 uppercase tracking-wide mt-0.5">
             {format(date, "MMM", { locale: pl })}
+          </div>
+          <div className="text-xs font-semibold text-gold-400 tracking-wider mt-1">
+            {DOW[date.getDay()]}
           </div>
         </div>
 
