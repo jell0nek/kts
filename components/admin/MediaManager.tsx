@@ -138,8 +138,8 @@ export function MediaManager({
                   src={blobUrl(file.url)}
                   alt={file.caption ?? file.filename}
                   fill
+                  unoptimized
                   className="object-cover"
-                  sizes="(max-width: 640px) 50vw, 25vw"
                 />
               </div>
               <div className="p-2 space-y-1.5">
