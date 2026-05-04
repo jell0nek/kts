@@ -7,7 +7,7 @@ export async function sendPasswordResetEmail(token: string, email: string) {
   const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
 
   await resend.emails.send({
-    from: "KTS Admin <noreply@kts.org.pl>",
+    from: "KTS Admin <noreply@kts-seven.vercel.app>",
     to: email,
     subject: "Reset hasła — Panel Admina KTS",
     html: `
