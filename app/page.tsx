@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic"
 
 import Link from "next/link"
 import Image from "next/image"
-import { ChevronRight, Target, Shield, Award, MapPin } from "lucide-react"
+import { ChevronRight, Target, Shield, Award, MapPin, Info } from "lucide-react"
 import { getPublishedContent } from "@/lib/content-server"
 import { prisma } from "@/lib/prisma"
 import { format } from "date-fns"
@@ -29,16 +29,19 @@ export default async function HomePage() {
         <div className="absolute inset-0 opacity-5 pointer-events-none"
           style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #c8a951 1px, transparent 0)", backgroundSize: "32px 32px" }}
         />
-        <div className="relative max-w-6xl mx-auto px-4 py-24 md:py-36">
-          <div className="flex items-center gap-12">
+        <div className="relative max-w-6xl mx-auto px-4 pt-8 pb-24 md:pt-10 md:pb-36">
+          {content.announcementHtml && (
+            <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-5 py-3 text-sm text-white/90">
+              <Info className="w-4 h-4 shrink-0 text-gold-400" />
+              <div
+                className="[&_p]:m-0 [&_p]:leading-relaxed"
+                dangerouslySetInnerHTML={{ __html: content.announcementHtml }}
+              />
+            </div>
+          )}
+          <div className={`flex items-center gap-12 ${content.announcementHtml ? "mt-10" : "mt-16 md:mt-24"}`}>
             {/* Text */}
             <div className="flex-1 min-w-0">
-              {content.announcementHtml && (
-                <div
-                  className="mb-6 bg-gold-500/20 border border-gold-500/40 text-gold-300 rounded-lg px-4 py-3 text-sm prose"
-                  dangerouslySetInnerHTML={{ __html: content.announcementHtml }}
-                />
-              )}
               <p className="text-gold-400 font-semibold tracking-widest uppercase text-xs mb-4">
                 Kraków · od 2015 roku
               </p>

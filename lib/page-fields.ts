@@ -16,8 +16,8 @@ export const PAGE_CONFIGS: Record<string, PageConfig> = {
   home: {
     title: "Strona główna",
     fields: [
-      { name: "heroTitle", label: "Tytuł hero", type: "text", placeholder: "Krakowskie Towarzystwo Strzeleckie" },
-      { name: "heroSubtitle", label: "Podtytuł hero", type: "text" },
+      { name: "heroTitle", label: "Tytuł", type: "text", placeholder: "Krakowskie Towarzystwo Strzeleckie" },
+      { name: "heroSubtitle", label: "Podtytuł", type: "text" },
       { name: "introHtml", label: "Tekst wstępny", type: "rich" },
       { name: "ctaText", label: "Tekst przycisku CTA", type: "text", placeholder: "Dołącz do nas" },
       { name: "ctaHref", label: "Link przycisku CTA", type: "text", placeholder: "/o-nas" },
