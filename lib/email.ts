@@ -2,8 +2,7 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-// const RECOVERY_EMAIL = "biuro@kts.org.pl"
-const RECOVERY_EMAIL = "pawlikjakubfcs@gmail.com";
+const RECOVERY_EMAIL = process.env.ADMIN_EMAIL ?? "";
 
 export async function sendPasswordResetEmail(token: string) {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";

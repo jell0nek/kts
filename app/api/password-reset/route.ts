@@ -4,8 +4,7 @@ import { sendPasswordResetEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-// const RECOVERY_EMAIL = "biuro@kts.org.pl"
-const RECOVERY_EMAIL = "pawlikjakubfcs@gmail.com";
+const RECOVERY_EMAIL = process.env.ADMIN_EMAIL ?? "";
 
 // POST /api/password-reset — send reset email
 export async function POST() {
