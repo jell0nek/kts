@@ -5,19 +5,24 @@ import { PAGE_DEFAULTS } from "../lib/content"
 const prisma = new PrismaClient()
 
 async function main() {
-  // ── Admin user ─────────────────────────────────────────────
-  const rawPassword = process.env.ADMIN_PASSWORD ?? "KTS_admin_2025"
-  const hashedPassword = await bcrypt.hash(rawPassword, 12)
-
+  // ── Admin users ────────────────────────────────────────────
+  const adminPassword = process.env.ADMIN_PASSWORD ?? "KTS_admin_2025"
+  const hashedAdmin = await bcrypt.hash(adminPassword, 12)
   await prisma.user.upsert({
     where: { email: "biuro@kts.org.pl" },
-    update: { password: hashedPassword },
-    create: {
-      email: "biuro@kts.org.pl",
-      password: hashedPassword,
-    },
+    update: {},
+    create: { email: "biuro@kts.org.pl", password: hashedAdmin },
   })
   console.log("✓ Admin user: biuro@kts.org.pl")
+
+  const uberPassword = process.env.UBER_ADMIN_PASSWORD ?? "KTS_uber_2025"
+  const hashedUber = await bcrypt.hash(uberPassword, 12)
+  await prisma.user.upsert({
+    where: { email: "pawlikjakubfcs@gmail.com" },
+    update: {},
+    create: { email: "pawlikjakubfcs@gmail.com", password: hashedUber },
+  })
+  console.log("✓ Uber admin: pawlikjakubfcs@gmail.com")
 
   // ── Page content (draft = published = defaults) ────────────
   const pages = [
@@ -88,7 +93,8 @@ async function main() {
   }
 
   console.log("\n✅ Seed complete!")
-  console.log(`\nAdmin login:\n  Email: biuro@kts.org.pl\n  Hasło: ${rawPassword}`)
+  console.log(`\nAdmin login:\n  Email: biuro@kts.org.pl\n  Hasło: ${adminPassword}`)
+  console.log(`  Uber admin: pawlikjakubfcs@gmail.com\n  Hasło: ${uberPassword}`)
   console.log("\n⚠ Zmień hasło po pierwszym logowaniu!")
 }
 

@@ -4,17 +4,23 @@ import { sendPasswordResetEmail } from "@/lib/email";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 
-const RECOVERY_EMAIL = process.env.ADMIN_EMAIL ?? "";
-
 // POST /api/password-reset — send reset email
-export async function POST() {
+export async function POST(req: NextRequest) {
+  const { email } = await req.json().catch(() => ({}));
+
+  // Always return ok to avoid leaking whether an email exists
+  if (!email || typeof email !== "string") return NextResponse.json({ ok: true });
+
+  const user = await prisma.user.findUnique({ where: { email } });
+  if (!user) return NextResponse.json({ ok: true });
+
   const token = crypto.randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 60 * 60 * 1000); // 1h
 
   await prisma.passwordResetToken.create({
-    data: { email: RECOVERY_EMAIL, token, expires },
+    data: { email, token, expires },
   });
-  await sendPasswordResetEmail(token);
+  await sendPasswordResetEmail(token, email);
 
   return NextResponse.json({ ok: true });
 }
@@ -38,7 +44,7 @@ export async function PUT(req: NextRequest) {
 
   const hashed = await bcrypt.hash(password, 12);
   await prisma.user.update({
-    where: { email: RECOVERY_EMAIL },
+    where: { email: record.email },
     data: { password: hashed },
   });
   await prisma.passwordResetToken.update({

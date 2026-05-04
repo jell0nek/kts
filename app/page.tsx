@@ -30,7 +30,7 @@ export default async function HomePage() {
           style={{ backgroundImage: "radial-gradient(circle at 2px 2px, #c8a951 1px, transparent 0)", backgroundSize: "32px 32px" }}
         />
         <div className="relative max-w-6xl mx-auto px-4 pt-8 pb-24 md:pt-10 md:pb-36">
-          {content.announcementHtml && (
+          {content.announcementHtml?.replace(/<[^>]*>/g, "").trim() && (
             <div className="flex items-center gap-3 bg-white/10 border border-white/20 rounded-xl px-5 py-3 text-sm text-white/90">
               <Info className="w-4 h-4 shrink-0 text-gold-400" />
               <div
@@ -39,7 +39,7 @@ export default async function HomePage() {
               />
             </div>
           )}
-          <div className={`flex items-center gap-12 ${content.announcementHtml ? "mt-10" : "mt-16 md:mt-24"}`}>
+          <div className={`flex items-center gap-12 ${content.announcementHtml?.replace(/<[^>]*>/g, "").trim() ? "mt-10" : "mt-16 md:mt-24"}`}>
             {/* Text */}
             <div className="flex-1 min-w-0">
               <p className="text-gold-400 font-semibold tracking-widest uppercase text-xs mb-4">

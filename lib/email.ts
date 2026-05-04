@@ -2,15 +2,13 @@ import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-const RECOVERY_EMAIL = process.env.ADMIN_EMAIL ?? "";
-
-export async function sendPasswordResetEmail(token: string) {
+export async function sendPasswordResetEmail(token: string, email: string) {
   const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3000";
   const resetUrl = `${baseUrl}/admin/reset-password?token=${token}`;
 
   await resend.emails.send({
     from: "KTS Admin <noreply@kts.org.pl>",
-    to: RECOVERY_EMAIL,
+    to: email,
     subject: "Reset hasła — Panel Admina KTS",
     html: `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
