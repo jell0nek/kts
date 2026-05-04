@@ -14,7 +14,7 @@ export function PageHero({ title, subtitle, children }: PageHeroProps) {
         {children && <div className="mb-4">{children}</div>}
         <div className="flex items-center gap-6 md:gap-8">
           <Image
-            src="/logo.png"
+            src="/logo_metal-retina.png"
             alt="Krakowskie Towarzystwo Strzeleckie"
             width={160}
             height={160}
