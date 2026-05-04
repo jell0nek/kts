@@ -62,7 +62,7 @@ export default async function HomePage() {
             {/* Logo */}
             <div className="hidden md:flex shrink-0 items-center justify-center">
               <Image
-                src="/logo.png"
+                src="/logo_metal-retina.png"
                 alt="Krakowskie Towarzystwo Strzeleckie"
                 width={320}
                 height={320}
